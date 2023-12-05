@@ -1,11 +1,14 @@
 import React, { useState, setState } from "react";
 import "./style.css";
+import { addDoc, setDoc, doc, collection } from "firebase/firestore";
+import { db } from "../firebase";
+
 function Form() {
-  let date = useState(useState(null));
-  const [name, setName] = useState(null);
-  const [empId, setEmpId] = useState(null);
-  const [subject, setSubject] = useState(null);
-  const [description, setDescription] = useState(null);
+  let date = useState(useState(""));
+  const [name, setName] = useState("");
+  const [empId, setEmpId] = useState("");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -23,7 +26,9 @@ function Form() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     let date = new Date();
     let formattedDate =
       date.getFullYear() +
@@ -38,12 +43,7 @@ function Form() {
       "-" +
       String(date.getSeconds()).padStart(2, "0");
 
-    console.log(formattedDate, name, empId, subject, description);
-    // set name, empID, subject, description text boxes to empty
-    setName("");
-    setEmpId("");
-    setSubject("");
-    setDescription("");
+    const title = subject + "_" + formattedDate;
 
     // format text file
     const text =
@@ -60,27 +60,42 @@ function Form() {
       subject +
       "\n" +
       "Description: " +
-      "\n" +
       "WARNING: EXTERNALLY GENERATED TICKET, VERIFY INTEGRITY BEFORE ACTION" +
-      "\n" +
       description +
       "\n" +
       "----------------------------------------";
 
+    // Create a ticket object
+    const ticket = {
+      resolved: false,
+      data: text,
+    };
+
     // return text file containing name, empID, subject, description
-    const element = document.createElement("a");
-    const file = new Blob([text], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = subject + "_" + formattedDate + ".txt";
-    document.body.appendChild(element); // Required for this to work in FireFox
-    element.click();
+    // const element = document.createElement("a");
+    // const file = new Blob([text], { type: "text/plain" });
+    // element.href = URL.createObjectURL(file);
+    // element.download = title + ".txt";
+    // document.body.appendChild(element); // Required for this to work in FireFox
+    // element.click();
+
+    // add ticket to firebase
+    try {
+      const docRef = await addDoc(collection(db, "tickets"), {
+        ...ticket,
+        title: title,
+      });
+      console.log("Document written with ID: ", docRef.id);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
   };
 
   return (
     <div className="form">
       <div className="form-body">
         <div className="name">
-          <label className="form__label" for="name">
+          <label className="form__label" htmlFor="name">
             Name{" "}
           </label>
           <input
@@ -93,7 +108,7 @@ function Form() {
           />
         </div>
         <div className="empId">
-          <label className="form__label" for="empId">
+          <label className="form__label" htmlFor="empId">
             Employee ID{" "}
           </label>
           <input
@@ -107,7 +122,7 @@ function Form() {
           />
         </div>
         <div className="subject">
-          <label className="form__label" for="subject">
+          <label className="form__label" htmlFor="subject">
             Subject{" "}
           </label>
           <input
@@ -120,7 +135,7 @@ function Form() {
           />
         </div>
         <div className="password">
-          <label className="form__label" for="description">
+          <label className="form__label" htmlFor="description">
             Description{" "}
           </label>
           <input
@@ -133,8 +148,8 @@ function Form() {
           />
         </div>
       </div>
-      <div class="footer">
-        <button onClick={() => handleSubmit()} type="submit" class="btn">
+      <div className="footer">
+        <button onClick={handleSubmit} type="submit" className="btn">
           Submit
         </button>
       </div>
